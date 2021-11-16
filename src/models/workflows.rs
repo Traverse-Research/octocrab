@@ -4,7 +4,7 @@ use super::*;
 #[non_exhaustive]
 pub struct WorkFlow {
     pub id: WorkflowId,
-    pub node_id: String,
+    pub node_id: Option<String>,
     pub name: String,
     pub path: String,
     pub state: String,

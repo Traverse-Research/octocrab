@@ -164,7 +164,7 @@ use std::fmt;
 use std::sync::{Arc, RwLock};
 
 use once_cell::sync::Lazy;
-use reqwest::{header::HeaderName, StatusCode, Url};
+use reqwest::{header::HeaderName, StatusCode};
 use serde::Serialize;
 use snafu::*;
 
@@ -180,6 +180,8 @@ pub use self::{
     from_response::FromResponse,
     page::Page,
 };
+
+pub use url::Url;
 
 /// A convenience type with a default error type of [`Error`].
 pub type Result<T, E = error::Error> = std::result::Result<T, E>;
