@@ -132,6 +132,8 @@ pub struct ListRunsBuilder<'octo, 'b> {
     #[serde(skip)]
     handler: &'b WorkflowsHandler<'octo>,
     #[serde(skip)]
+    etag: Option<EntityTag>,
+    #[serde(skip)]
     workflow_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     actor: Option<String>,
@@ -153,6 +155,7 @@ impl<'octo, 'b> ListRunsBuilder<'octo, 'b> {
     pub(crate) fn new(handler: &'b WorkflowsHandler<'octo>, workflow_id: String) -> Self {
         Self {
             handler,
+            etag: None,
             workflow_id,
             actor: None,
             branch: None,
@@ -208,15 +211,27 @@ impl<'octo, 'b> ListRunsBuilder<'octo, 'b> {
         self
     }
 
+    /// Etag for this request.
+    pub fn etag(mut self, etag: Option<EntityTag>) -> Self {
+        self.etag = etag;
+        self
+    }
+
     /// Sends the actual request.
-    pub async fn send(self) -> Result<Page<models::workflows::Run>> {
+    pub async fn send(self) -> Result<Etagged<Page<models::workflows::Run>>> {
         let url = format!(
-            "repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs",
+            "{base_url}repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs",
+            base_url = self.handler.crab.base_url,
             owner = self.handler.owner,
             repo = self.handler.repo,
             workflow_id = self.workflow_id
         );
-        self.handler.crab.get(url, Some(&self)).await
+        let response = self
+            .handler
+            .crab
+            ._get_with_etag(url, None::<&()>, self.etag)
+            .await?;
+        Etagged::<Page<models::workflows::Run>>::from_response(response).await
     }
 }
 
@@ -275,7 +290,8 @@ impl<'octo, 'b> ListJobsBuilder<'octo, 'b> {
     /// Sends the actual request.
     pub async fn send(self) -> Result<Etagged<Page<models::workflows::Job>>> {
         let url = format!(
-            "repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
+            "{base_url}repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
+            base_url = self.handler.crab.base_url,
             owner = self.handler.owner,
             repo = self.handler.repo,
             run_id = self.run_id,
