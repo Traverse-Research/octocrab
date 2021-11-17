@@ -1,5 +1,7 @@
+use crate::etag::{EntityTag, Etagged};
 use crate::models::RunId;
 use crate::{models, Octocrab, Page, Result};
+use crate::from_response::FromResponse;
 
 pub struct WorkflowsHandler<'octo> {
     crab: &'octo Octocrab,
@@ -223,6 +225,8 @@ pub struct ListJobsBuilder<'octo, 'b> {
     #[serde(skip)]
     handler: &'b WorkflowsHandler<'octo>,
     #[serde(skip)]
+    etag: Option<EntityTag>,
+    #[serde(skip)]
     run_id: RunId,
     #[serde(skip_serializing_if = "Option::is_none")]
     filter: Option<crate::params::workflows::Filter>,
@@ -236,6 +240,7 @@ impl<'octo, 'b> ListJobsBuilder<'octo, 'b> {
     pub(crate) fn new(handler: &'b WorkflowsHandler<'octo>, run_id: RunId) -> Self {
         Self {
             handler,
+            etag: None,
             run_id,
             per_page: None,
             page: None,
@@ -261,15 +266,26 @@ impl<'octo, 'b> ListJobsBuilder<'octo, 'b> {
         self
     }
 
+    /// Etag for this request.
+    pub fn etag(mut self, etag: Option<EntityTag>) -> Self {
+        self.etag = etag;
+        self
+    }
+
     /// Sends the actual request.
-    pub async fn send(self) -> Result<Page<models::workflows::Job>> {
+    pub async fn send(self) -> Result<Etagged<Page<models::workflows::Job>>> {
         let url = format!(
             "repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
             owner = self.handler.owner,
             repo = self.handler.repo,
             run_id = self.run_id,
         );
-        self.handler.crab.get(url, Some(&self)).await
+        let response = self
+            .handler
+            .crab
+            ._get_with_etag(url, None::<&()>, self.etag)
+            .await?;
+        Etagged::<Page<models::workflows::Job>>::from_response(response).await
     }
 }
 
