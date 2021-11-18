@@ -54,11 +54,12 @@ impl<'octo> WorkflowDispatchBuilder<'octo> {
         );
 
         // this entry point doesn't actually return anything sensible
-        self.crab
+        let result = self
+            .crab
             ._post(self.crab.absolute_url(route)?, Some(&self.data))
             .await?;
 
-        Ok(())
+        crate::map_github_error(result).await.map(|_| ())
     }
 }
 
@@ -386,8 +387,8 @@ impl<'octo> ActionsHandler<'octo> {
     ) -> WorkflowDispatchBuilder<'_> {
         WorkflowDispatchBuilder::new(
             self.crab,
-            repo.into(),
             owner.into(),
+            repo.into(),
             workflow_id.into(),
             r#ref.into(),
         )

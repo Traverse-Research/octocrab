@@ -1,7 +1,7 @@
 use crate::etag::{EntityTag, Etagged};
+use crate::from_response::FromResponse;
 use crate::models::RunId;
 use crate::{models, Octocrab, Page, Result};
-use crate::from_response::FromResponse;
 
 pub struct WorkflowsHandler<'octo> {
     crab: &'octo Octocrab,
